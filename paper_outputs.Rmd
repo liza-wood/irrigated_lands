@@ -1,0 +1,939 @@
+---
+title: "Information-based policy tools facilitate California farmers’ learning about nitrogen management"
+header-includes: \usepackage{graphicx} \usepackage{float}
+output:
+  pdf_document: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_knit$set(root.dir = "~/Documents/Davis/R-Projects/ILRP")
+library(ltm)
+library(psych)
+library(nnet)
+library(dplyr)
+library(tidyr)
+library(VGAM)
+library(reshape2)
+library(stargazer)
+library(lmtest)
+library(pROC)
+library(ggplot2)
+library(jtools)
+library(emmeans)
+library(pscl)
+library(vcd)
+library(tinytex)
+library(float)
+library(extrafont)
+library(cowplot)
+```
+
+```{r data}
+components.df <- read.csv("data/cleaned_8.16.20_v4.csv")
+model.df <- read.csv("data/modeldf_8.16.20_v4.csv")
+model.df$sequence3_strict_NMP <- factor(model.df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))
+model.df$sequence3_strict_FEP <- factor(model.df$sequence3_strict_FEP, c('None', 'Conceptual', 'Applied'))
+```
+
+```{r summary}
+summary(model.df)
+```
+
+```{r descriptives contd with proptables}
+prop.table(table(df$Q21_Analyze_A))
+prop.table(table(df$Q21_Analyze_B))
+prop.table(table(df$Q21_Identify_A))
+prop.table(table(df$Q21_Identify_B))
+prop.table(table(df$Q21_Improve_A))
+prop.table(table(df$Q21_Improve_B))
+prop.table(table(df$Q21_Changed_A))
+prop.table(table(df$Q21_Changed_B))
+```
+
+```{r learning stages plots}
+#NMP
+dfplan <- components.df %>%
+  pivot_longer(
+    cols = NMP_improve:NMP_changed,
+    names_to = "plan_sentiment",
+    values_to = "plan_score",
+    values_drop_na = TRUE)
+
+dfplan <- dfplan %>% 
+  dplyr::select(plan_sentiment, plan_score, sequence3_strict_NMP)
+
+dfplan$plan_sentiment_recode <- recode_factor(dfplan$plan_sentiment, 
+                                              "NMP_analyze"="Analyze",
+                                              "NMP_identify"="Identify",
+                                              "NMP_improve"="Improve", 
+                                              "NMP_changed"="Change")
+
+dfplan <- na.omit(dfplan)
+
+p1 <- ggplot(dfplan, aes(x = plan_sentiment_recode, fill = plan_score)) +
+  geom_bar(stat="count") + facet_wrap(~ sequence3_strict_NMP) +
+  scale_fill_manual(values=c("#D9D9D9", "#969696", "#525252")) + 
+  labs(x = "Learning statements", y = "Number of farmers", 
+       fill = "", title = "Nitrogen Management Plan") + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank(), 
+        legend.text = element_text(size = 8), 
+        axis.text.x=element_text(angle = -45, hjust = 0)) +
+   theme(legend.position = "none")
+
+# FEP
+dfplan <- components.df %>%
+  pivot_longer(
+    cols = FEP_improve:FEP_changed,
+    names_to = "plan_sentiment",
+    values_to = "plan_score",
+    values_drop_na = TRUE)
+
+dfplan = dfplan %>% 
+  dplyr::select(plan_sentiment, plan_score, sequence3_strict_FEP)
+
+dfplan$plan_sentiment_recode = recode_factor(dfplan$plan_sentiment, 
+                                             "FEP_analyze"="Analyze",
+                                             "FEP_identify"="Identify",
+                                             "FEP_improve"="Improve", 
+                                             "FEP_changed"="Change")
+
+dfplan = na.omit(dfplan)
+
+p2 <- ggplot(dfplan, aes(x = plan_sentiment_recode, fill = plan_score)) +
+  geom_bar(stat="count") + facet_wrap(~ sequence3_strict_FEP) +  
+  scale_fill_manual(values=c("#D9D9D9", "#969696", "#525252")) + 
+  labs(x = "Learning statements", y = "Number of farmers", 
+       fill = "", title = "Farm Evaluation Plan") + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank(), 
+        legend.text = element_text(size = 8),  
+        axis.text.x=element_text(angle = -45, hjust = 0))
+```
+
+```{r learning stages grid arrange, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 3, fig.align="center"}
+ggdraw() + draw_plot(p1, x = 0, y = 0, width = .4425, height = 1) +
+           draw_plot(p2, x=.4425, y=0, width=0.5575, height = 1)
+```
+
+```{r full df models strict NMP}
+strict.NMP <- model.df %>% 
+  dplyr::select(-sequence3_lax_FEP, -sequence3_lax_NMP, 
+                -sequence3_strict_FEP, -consulting2)
+
+modeldf.naomit = na.omit(strict.NMP)
+
+NMP.model <- vglm(ordered(modeldf.naomit$sequence3_strict_NMP) ~ 
+                    LogTotalFarm_acres + income + Education2 + 
+                    blame_ag + priority_econ + priority_conservation + 
+                    Info_count_15 + Q17_SelfCert_A + wqcperc_avg, 
+                  data = modeldf.naomit, family=cratio(parallel = T))
+
+# Parallel = F, Testing proportional odds assumption
+
+NMP.model.np <- vglm(ordered(modeldf.naomit$sequence3_strict_NMP) ~  
+                       LogTotalFarm_acres + income + Education2 +  
+                       blame_ag + priority_econ + priority_conservation + 
+                       Info_count_15 + Q17_SelfCert_A + wqcperc_avg, 
+                     data = modeldf.naomit, family=cratio(parallel = F))
+
+# Test prop odds
+tran.LR <- deviance(NMP.model) - deviance(NMP.model.np)
+degf <- NMP.model@df.residual - NMP.model.np@df.residual
+p.value <- 1 - pchisq(q= tran.LR , df = degf); p.value
+```
+
+```{r full df models strict FEP}
+strict.FEP <- model.df %>% 
+  dplyr::select(-sequence3_lax_NMP, -sequence3_lax_FEP, 
+                -sequence3_strict_NMP, -consulting2)
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+FEP.model <- vglm(ordered(modeldf.naomit$sequence3_strict_FEP) ~  
+                   LogTotalFarm_acres + income + Education2 +  
+                   blame_ag + priority_econ + priority_conservation + 
+                   Info_count_15 + Q17_SelfCert_A + wqcperc_avg, 
+                 data = modeldf.naomit, family=cratio(parallel = T))
+
+FEP.model.np <- vglm(ordered(modeldf.naomit$sequence3_strict_FEP) ~  
+                       LogTotalFarm_acres + income + Education2 +  
+                        blame_ag + priority_econ + priority_conservation + 
+                        Info_count_15 + Q17_SelfCert_A + wqcperc_avg, 
+                      data = modeldf.naomit, family=cratio(parallel = F))
+
+tran.LR <- deviance(FEP.model) - deviance(FEP.model.np)
+degf <- FEP.model@df.residual - FEP.model.np@df.residual
+p.value <- 1 - pchisq(q= tran.LR , df = degf); p.value
+```
+
+```{r}
+summary(NMP.model.np)
+summary(FEP.model.np)
+```
+
+```{r coeff table strict non-prop to put into latex NMP and FEP}
+s1 <- summary(NMP.model.np)
+nmpodds <- data.frame(exp(s1@coef3))
+nmpci <- data.frame(exp(confint(NMP.model.np)))
+nmp <- cbind(nmpodds, nmpci) 
+nmp <- nmp %>% dplyr::select(Estimate, X2.5.., X97.5..) %>% round(3)
+nmp <- cbind(rownames(nmp), data.frame(nmp, row.names=NULL))
+nmp <- nmp %>% rename("variable" = "rownames(nmp)", "LCI" = "X2.5..", "UCI" = "X97.5..")
+nmp <- nmp %>% separate(variable, into = c("variable", "level"), sep = ":") %>%
+  pivot_wider(names_from = level, values_from = c(Estimate, LCI, UCI)) %>%
+  dplyr::select(variable, Estimate_1, LCI_1, UCI_1, Estimate_2, LCI_2, UCI_2)
+nmp$CI1 <- paste(nmp$LCI_1,nmp$UCI_1, sep = ", ")
+nmp$CI1 <- paste0("(", nmp$CI1, ")")
+nmp$CI2 <- paste(nmp$LCI_2,nmp$UCI_2, sep = ", ")
+nmp$CI2 <- paste0("(", nmp$CI2, ")")
+nmp <- nmp %>% dplyr::select(variable, Estimate_1, CI1, Estimate_2, CI2)
+
+
+s1 <- summary(FEP.model.np)
+fepodds <- data.frame(exp(s1@coef3))
+fepci <- data.frame(exp(confint(FEP.model.np)))
+fep <- cbind(fepodds, fepci) 
+fep <- fep %>% dplyr::select(Estimate, X2.5.., X97.5..) %>% round(3)
+fep <- cbind(rownames(fep), data.frame(fep, row.names=NULL))
+fep <- fep %>% rename("variable" = "rownames(fep)", "LCI" = "X2.5..", "UCI" = "X97.5..")
+fep <- fep %>% separate(variable, into = c("variable", "level"), sep = ":") %>% pivot_wider(names_from = level, values_from = c(Estimate, LCI, UCI)) %>% dplyr::select(variable, Estimate_1, LCI_1, UCI_1, Estimate_2, LCI_2, UCI_2)
+fep$CI1 <- paste(fep$LCI_1,fep$UCI_1, sep = ", ")
+fep$CI1 <- paste0("(", fep$CI1, ")")
+fep$CI2 <- paste(fep$LCI_2,fep$UCI_2, sep = ", ")
+fep$CI2 <- paste0("(", fep$CI2, ")")
+fep <- fep %>% dplyr::select(variable, Estimate_1, CI1, Estimate_2, CI2)
+
+odds <- left_join(nmp, fep, by = "variable")
+colnames(odds) <- c("Variable", "NMP Conceptual Est.", "NMP Conceptual CI", " NMP Applied Est.", "NMP Applied CI", "FEP Conceptual Est.", "FEP Conceptual CI", "FEP Applied Est.", "FEP Applied CI")
+odds
+```
+
+```{r NMP pp edu p1, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.NMP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = c(1:7), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg, na.rm = T)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p1 <- ggplot(meltdf.clean, aes(x=Education2, y=Probability, 
+                                ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Education level", y = "Predicted probabilities", 
+       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(Education2, Conceptual, Applied) %>% 
+  filter(Education2 == 4 | Education2 == 6)
+pp_quartiles
+```
+
+```{r FEP pp edu p2, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = c(1:7), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg, na.rm = T)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p2 <- ggplot(meltdf.clean, aes(x=Education2, y=Probability, 
+                                ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Education level", y = "Predicted probabilities", 
+       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(Education2, Conceptual, Applied) %>% 
+  filter(Education2 == 4 | Education2 == 6)
+pp_quartiles
+```
+
+```{r predicted probs 1, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width = 8, fig.height = 2.5, fig.align="center"}
+plot_grid(p1, p2, ncol=2, nrow = 1, label_size = 10, label_fontfamily = "Times") 
+```
+
+```{r NMP pp farm as business attitudes p2, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.NMP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = c(1:5), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p2 <- ggplot(meltdf.clean, aes(x=priority_econ, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Farm-as-business attitude", y = "Predicted probabilities", 
+       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(priority_econ, Conceptual, Applied) %>% 
+  filter(priority_econ == 4 | priority_econ == 5)
+
+pp_quartiles
+```
+
+```{r NMP pp stewardship attitudes p3, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.NMP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ), priority_conservation = c(1:5), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd = position_dodge(.1)
+
+p3 <- ggplot(meltdf.clean, aes(x=priority_conservation, 
+                               y=Probability, ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Stewardship attitude", y = "Predicted probabilities", 
+       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(priority_conservation, Conceptual, Applied) %>% 
+  filter(priority_conservation == 3 | priority_conservation == 5)
+
+pp_quartiles
+```
+
+```{r NMP pp perc p4, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.NMP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = c(1:5)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf = ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p4 <- ggplot(meltdf.clean, aes(x=wqcperc_avg, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Coalition perception", y = "Predicted probabilities", 
+       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(wqcperc_avg, Conceptual, Applied) %>% 
+  filter(wqcperc_avg == 3 | wqcperc_avg == 4)
+
+pp_quartiles
+```
+
+```{r NMP pp Information p5, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.NMP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = c(0:15), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+
+pd <- position_dodge(.1)
+p5 <- ggplot(meltdf.clean, aes(x=Info_count_15, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Information sources", y = "Predicted probabilities", 
+       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank()) 
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(Info_count_15, Conceptual, Applied) %>% 
+  filter(Info_count_15 == 2 | Info_count_15 == 5)
+
+pp_quartiles
+```
+
+```{r FEP pp farm as business attitudes p6, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = c(1:5), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p6 <- ggplot(meltdf.clean, aes(x=priority_econ, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Farm-as-business attitude", y = "Predicted probabilities", 
+       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(priority_econ, Conceptual, Applied) %>% 
+  filter(priority_econ == 4 | priority_econ == 5)
+
+pp_quartiles
+```
+
+```{r FEP pp stewardship attitudes p7, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ), priority_conservation = c(1:5), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+
+meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd = position_dodge(.1)
+
+p7 <- ggplot(meltdf.clean, aes(x=priority_conservation, 
+                               y=Probability, ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Stewardship attitude", y = "Predicted probabilities", 
+       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(priority_conservation, Conceptual, Applied) %>% 
+  filter(priority_conservation == 3 | priority_conservation == 5)
+
+pp_quartiles
+```
+
+```{r FEP pp perc p8, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = c(1:5)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf = ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+
+meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+pd <- position_dodge(.1)
+
+p8 <- ggplot(meltdf.clean, aes(x=wqcperc_avg, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Coalition perception", y = "Predicted probabilities", 
+       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank())
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(wqcperc_avg, Conceptual, Applied) %>% 
+  filter(wqcperc_avg == 3 | wqcperc_avg == 4)
+
+pp_quartiles
+```
+
+```{r FEP pp Information p9, include = FALSE}
+
+modeldf.naomit <- na.omit(strict.FEP)
+
+pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = c(0:15), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+
+# Using predict function to get predicted probabilities, with standard errors
+pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
+
+fit1 <- pp_pred$`fitted.values.logitlink(P[Y>1|Y>=1])`
+fit2 <- pp_pred$`fitted.values.logitlink(P[Y>2|Y>=2])`
+se.fit1 <- pp_pred$`se.fit.logitlink(P[Y>1|Y>=1])`
+se.fit2 <- pp_pred$`se.fit.logitlink(P[Y>2|Y>=2])`
+
+ppdf_predCIs <- within(pp_pred, {
+  Conceptual <- plogis(fit1)
+  LL1 <- plogis(fit1 - (1.96 * se.fit1))
+  UL1 <- plogis(fit1 + (1.96 * se.fit1))
+  Applied <- plogis(fit2)
+  LL2 <- plogis(fit2 - (1.96 * se.fit2))
+  UL2 <- plogis(fit2 + (1.96 * se.fit2))
+})
+
+meltdf <- ppdf_predCIs %>% 
+  gather(key = "Level", value = "Probability", 
+         Conceptual, Applied, -UL1, -LL1, -UL2, -LL2) %>% 
+  gather(key = "ULCI", value = "ULvalue", 
+         UL1, UL2, -Level, -Probability, -LL1, -LL2) %>% 
+  gather(key = "LLCI", value = "LLvalue", 
+         LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
+
+meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf.clean = rbind(meltdf1, meltdf2)
+meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
+
+pd <- position_dodge(.1)
+p9 <- ggplot(meltdf.clean, aes(x=Info_count_15, y=Probability, 
+                               ymin=LLvalue, ymax=ULvalue)) + 
+  geom_ribbon(alpha=0.2) +
+  geom_line(size=0.2) + facet_wrap(~Level) +
+  labs(x = "Information sources", y = "Predicted probabilities", 
+       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank()) 
+
+pp_quartiles <- ppdf_predCIs %>% 
+  dplyr::select(Info_count_15, Conceptual, Applied) %>% 
+  filter(Info_count_15 == 2 | Info_count_15 == 5)
+
+pp_quartiles
+```
+
+```{r predicted probs 2, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width = 8, fig.height = 10, fig.align="center"}
+#grid.arrange(p3, p9, p2, p8, p6, p12, p4, p10, ncol = 2,  top=textGrob("Figure 3. Predicted probabilities of sequential logit: Attitudinal and informational variables across learning stages",gp=gpar(fontsize=10,fontfamily="Times"), x = 0, hjust = 0))
+
+plot_grid(p3, p7, p2, p6, p4, p8, p5, p9, labels=c("a", "b", "c", "d", "e", "f", "g", "h"), ncol=2, nrow = 4, label_size = 10, label_fontfamily = "Times")
+```
+\pagebreak 
+```{r post-hoc visualizing information sources as sums, include = FALSE}
+
+info <- components.df %>% dplyr::select(Q11_b_0:Q11_p_0, sequence3_strict_NMP)
+
+info2 <- info %>%
+  pivot_longer(
+    cols = info$Q11_b_0:Q11_p_0,
+    names_to = "info_source",
+    values_to = "info_use",
+    values_drop_na = TRUE)
+
+info2$info_source_recode <- recode_factor(info2$info_source, "Q11_b_0"="Family", "Q11_c_0"="Field crew", "Q11_d_0"="Other growers", "Q11_e_0"="Irr. Distrct", "Q11_f_0"="Coalition", "Q11_g_0"="PCA", "Q11_h_0"="CCA", "Q11_i_0"="Ag. Commissioner", "Q11_j_0"="County FB", "Q11_k_0"="RCD", "Q11_l_0"="UC Ext.", "Q11_m_0"="CA FB", "Q11_n_0"="CDFA FREP", "Q11_o_0"="Comm. org/Co-op", "Q11_p_0"="NRCS")
+
+info2 <- na.omit(info2)
+
+infocount_none <- info2 %>% 
+  filter(sequence3_strict_NMP == "None") %>% 
+  group_by(info_source_recode) %>% 
+  count(info_use) %>% 
+  filter(info_use == 1) %>% 
+  mutate(seq = "None")
+infocount_conc <- info2 %>% 
+  filter(sequence3_strict_NMP == "Conceptual") %>% 
+  group_by(info_source_recode) %>% 
+  count(info_use) %>% 
+  filter(info_use == 1) %>% 
+  mutate(seq = "Conceptual")
+infocount_app <- info2 %>% 
+  filter(sequence3_strict_NMP == "Applied") %>% 
+  group_by(info_source_recode) %>% 
+  count(info_use) %>% 
+  filter(info_use == 1) %>% 
+  mutate(seq = "Applied")
+
+infocount <- rbind(infocount_none, infocount_conc, infocount_app)
+
+pcount <- ggplot(infocount, aes(x = reorder(info_source_recode, -n), y = n)) +
+  geom_bar(aes(fill = seq),stat = "identity", position = "dodge") + 
+  scale_fill_brewer() + 
+  labs(x = "Information source", y = "Number of farmers", fill = "") + 
+  theme_classic() + 
+  theme(text= element_text(size=12, family="Times"), 
+        plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
+        strip.background  = element_blank(), legend.text = element_text(size = 8), 
+        axis.text.x=element_text(angle = -45, hjust = 0))
+
+infoclean <- na.omit(info)
+infoclean$group <- factor(infoclean$sequence3_strict_NMP)
+
+# Family -- none
+pairwise.wilcox.test(infoclean$Q11_b_0, infoclean$group, p.adjust.method = "BH")
+# Field crew -- none
+pairwise.wilcox.test(infoclean$Q11_c_0, infoclean$group, p.adjust.method = "BH")
+# Other growers -- between none-applied
+pairwise.wilcox.test(infoclean$Q11_d_0, infoclean$group, p.adjust.method = "BH")
+# Irr. dist -- none-conceptual, none-applied
+pairwise.wilcox.test(infoclean$Q11_e_0, infoclean$group, p.adjust.method = "BH")
+# Coalition -- all of them*
+coalition <- pairwise.wilcox.test(infoclean$Q11_f_0, infoclean$group, p.adjust.method = "BH")
+# PCA -- none-conceptual, none-applied
+pca <- pairwise.wilcox.test(infoclean$Q11_g_0, infoclean$group, p.adjust.method = "BH")
+# CCA-- between none-applied, conceptual-applied*
+cca <- pairwise.wilcox.test(infoclean$Q11_h_0, infoclean$group, p.adjust.method = "BH")
+# Ag Comm-- between none-applied, conceptual=applied*
+agcomm <- pairwise.wilcox.test(infoclean$Q11_i_0, infoclean$group, p.adjust.method = "BH")
+# County FB-- none-applied, conceptual=applied*
+countyfb <- pairwise.wilcox.test(infoclean$Q11_j_0, infoclean$group, p.adjust.method = "BH")
+# RCD -- none
+pairwise.wilcox.test(infoclean$Q11_k_0, infoclean$group, p.adjust.method = "BH")
+# UC EXt-- all but only 0.07 for conc-applied
+ext <- pairwise.wilcox.test(infoclean$Q11_l_0, infoclean$group, p.adjust.method = "BH")
+# CA FB-- all*
+cafb <- pairwise.wilcox.test(infoclean$Q11_m_0, infoclean$group, p.adjust.method = "BH")
+# CDFA-- none-conceptual, none-applied
+cdfa <- pairwise.wilcox.test(infoclean$Q11_n_0, infoclean$group, p.adjust.method = "BH")
+# Co-op-- none
+pairwise.wilcox.test(infoclean$Q11_o_0, infoclean$group, p.adjust.method = "BH")
+# NRCS-- none-applied
+pairwise.wilcox.test(infoclean$Q11_p_0, infoclean$group, p.adjust.method = "BH")
+
+# so of interest is: Coalition, CCA, Ag Comm, County FB, CA FB
+
+library(ggsignif)
+# pvalue between conceptual and applied
+cca$p.value[1,1]
+coalition$p.value[1,1]
+agcomm$p.value[1,1]
+countyfb$p.value[1,1]
+cafb$p.value[1,1]
+
+# pvalue between none and conceptual -- only coalition and cafb overlap
+coalition$p.value[2,2]
+pca$p.value[2,2]
+ext$p.value[2,2]
+cafb$p.value[2,2]
+cdfa$p.value[2,2]
+
+# In order
+pca$p.value[2,2]
+cca$p.value[1,1]
+coalition$p.value[1,1]
+coalition$p.value[2,2]
+ext$p.value[2,2]
+agcomm$p.value[1,1]
+cdfa$p.value[2,2]
+countyfb$p.value[1,1]
+cafb$p.value[1,1]
+cafb$p.value[2,2]
+
+```
+
+```{r post-hoc visualizing information sources as proportions, include = FALSE}
+info2$sequence3_strict_NMP <- factor(info2$sequence3_strict_NMP, levels = c("None", "Conceptual", "Applied"))
+
+sum.df <- info2 %>% 
+  group_by(info_source_recode, sequence3_strict_NMP) %>% 
+  count(info_use) %>% filter(info_use == 1) %>% select(-info_use)
+
+prop.df <- sum.df %>% 
+  group_by(info_source_recode) %>% 
+  mutate(total = sum(n)) %>% 
+  ungroup() %>% mutate(proportion = n/total)
+
+diff.df <- prop.df %>% 
+  group_by(info_source_recode) %>% 
+  select(-n) %>% 
+  pivot_wider(names_from = sequence3_strict_NMP, values_from = proportion) %>% 
+  mutate(Conceptual_diff = Conceptual - None, Applied_diff = Applied - Conceptual) %>% 
+  select(-None, -Conceptual, -Applied) %>% 
+  pivot_longer(-c(info_source_recode, total), names_to = "Step", values_to = "Difference")
+
+diff.df$Step <- factor(diff.df$Step, levels = c("Conceptual_diff", "Applied_diff"))
+levels(diff.df$Step) <- c("Conceptual", "Applied")
+
+# Proportions plot
+pp <- ggplot(prop.df, aes(x = reorder(info_source_recode, -total), y = proportion)) + geom_bar(aes(fill = sequence3_strict_NMP),stat = "identity", position = "dodge") + scale_fill_manual(values=c("#D9D9D9", "#969696", "#525252")) + labs(x = "Information source", y = "Proportion of farmers using info source", fill = "") + theme_classic() + theme(text= element_text(size=14, family="Times"), plot.title = element_text(hjust = .5, vjust = 0, size = 12), strip.background  = element_blank(), legend.text = element_text(size = 10),  axis.text.x=element_text(angle = -45, hjust = 0))
+
+```
+
+```{r the info plots, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 5, fig.align="center"}
+
+p2 <- pp + geom_signif(position = "identity",
+  annotation = formatC(c("\u2020\u2020", "**", "***", "\u2020\u2020\u2020", 
+                         "\u2020\u2020", "**", "\u2020\u2020", "**", "*", "\u2020")),
+                xmin=c(.70, 3.00, 4.00, 3.70, 4.70, 8.00, 11.70, 13.00, 14.00, 13.70), 
+                xmax=c(1.00, 3.30, 4.30, 4.00, 5.00, 8.30, 12.00, 13.30, 14.30, 14.00),
+                y_position=c(0.4, 0.42, 0.495, 0.395, 0.395, 0.54, 0.40, 0.54, 0.55, 0.355), 
+  tip_length = 0.01, size = .1, textsize = 4, family = "Times")
+
+p2
+```
+

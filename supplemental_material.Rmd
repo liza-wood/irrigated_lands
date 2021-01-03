@@ -1,0 +1,612 @@
+---
+title: "Supplemental Material"
+header-includes: \usepackage{graphicx} \usepackage{float}
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_knit$set(root.dir = "~/Desktop/ILRP")
+library(ltm)
+library(psych)
+library(ggstance)
+library(nnet)
+library(Zelig)
+library(ZeligChoice)
+library(dplyr)
+library(VGAM)
+library(reshape2)
+library(ggplot2)
+library(tidyr)
+library(MASS)
+library(stargazer)
+library(bestglm)
+library(DAMisc)
+library(lmtest)
+library(pROC)
+library(ggplot2)
+library(jtools)
+library(RColorBrewer)
+library(emmeans)
+library(pscl)
+library(brant)
+library(xtable)
+library(vcd)
+library(tinytex)
+library(float)
+library(extrafont)
+library(xtable)
+library(gridExtra)
+library(GGally)
+```
+
+```{r data, include = FALSE}
+df <- read.csv("data/cleaned_8.16.20_v4.csv")
+```
+
+## Individual learning responses analyzed using an ordered logistic regression  
+
+Figure S1. Exponentiated coefficients for the effect learning responses for writing the NMP 
+```{r nmp plan response, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.height=3, fig.align="center"}
+
+ol_analyze <- polr(factor(Q21_Analyze_A) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_identify <- polr(factor(Q21_Identify_A) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_improve <- polr(factor(Q21_Improve_A) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_changed <- polr(factor(Q21_Changed_A) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+cols <- colorRampPalette(brewer.pal(4,"PRGn"))(4)
+p1 <- plot_summs(ol_analyze, ol_identify, ol_improve, ol_changed, 
+                 legend.title = "NMP learning type", 
+                 model.names = c("Analyze", "Identify", "Improve", "Change"), 
+                 colors = cols, exp = T, 
+                 coefs = c("Farm size (log acres)" = "LogTotalFarm_acres", 
+                           "Income" = "income", 
+                           "Education" = "Education2", 
+                           "Aware of ag. pollution" = "blame_ag", 
+                           "Farm-as-business attitudes" = "priority_econ", 
+                           "Stewardship attitudes" = "priority_conservation", 
+                           "Perception of Coalition" = "wqcperc_avg", 
+                           "Info. source count" = "Info_count_15", 
+                           "Self-certification" = "Q17_SelfCert_A"))
+
+ptheme <- theme_bw() +
+theme(panel.grid.major=element_blank(),
+    panel.grid.minor=element_blank(),
+    panel.border=element_blank(),
+    axis.line=element_line(),
+    text=element_text(family='Times'),
+    legend.title=element_blank(), 
+    axis.text=element_text(size=9),
+    axis.title=element_text(size=9),
+    legend.text = element_text(size = 9))
+
+p1 + ptheme
+```
+
+Figure S2. Exponentiated coefficients for the effect learning responses for writing the NMP 
+```{r fep plan response, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.height=3, fig.align="center"}
+
+ol_analyze <- polr(factor(Q21_Analyze_B) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_identify <- polr(factor(Q21_Identify_B) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_improve <- polr(factor(Q21_Improve_B) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+ol_changed <- polr(factor(Q21_Changed_B) ~ LogTotalFarm_acres + income + Education2 + blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, Hess=TRUE)
+
+cols <- colorRampPalette(brewer.pal(4,"PRGn"))(4)
+p2 <- plot_summs(ol_analyze, ol_identify, ol_improve, ol_changed, 
+                 legend.title = "FEP learning type", 
+                 model.names = c("Analyze", "Identify", "Improve", "Change"), 
+                 colors = cols, main.title = "Figure S1", exp = T, 
+                 coefs = c("Farm size (log acres)" = "LogTotalFarm_acres", 
+                           "Income" = "income", "Education" = "Education2", 
+                           "Aware of ag. pollution" = "blame_ag", 
+                           "Farm-as-business attitudes" = "priority_econ", 
+                           "Stewardship attitudes" = "priority_conservation", 
+                           "Perception of Coalition" = "wqcperc_avg", 
+                           "Info. source count" = "Info_count_15", 
+                           "Self-certification" = "Q17_SelfCert_A"))
+
+p2 + ptheme
+```
+
+## Comparing multiple constructs of learning stages   
+
+### Defining learning constructs   
+To construct a learning stages variable, we first calculated the average score (no, sometimes, yes) of the three more highly correlated learning questions: analyze, identify, and improve, which we will call "engagement." We then paired this average score with the response to "change", such that farmers could fall into one of nine categories: no engagement and no change (e0c0), some engagement and no change (e1c0), yes engagement and no change (e2c0), no engagement and some change (e0c1), no engagement and yes change (e0c2), some engagement and some change (e1c1), some engagement and yes change (e1c2), yes engagement and some change (e2c1), and yes engagement and yes change (e2c2) (Table 1).
+
+```{r sequential learning variable creation, include = FALSE}
+
+# This is creating a combination of learning and changing, ranging from scoring 0-2 on learning and 0-2 on changing
+df$learnchange_NMP = ifelse(df$nmpperc_avg < .5 & df$Q21_Changed_A == 0, "e0c0", ifelse(df$nmpperc_avg < .5 & df$Q21_Changed_A == 1, "e0c1", ifelse(df$nmpperc_avg < .5 & df$Q21_Changed_A == 2, "e0c2", ifelse(df$nmpperc_avg <= 1.34 & df$nmpperc_avg >= 0.5 & df$Q21_Changed_A == 0, "e1c0", ifelse(df$nmpperc_avg <= 1.34 & df$nmpperc_avg >= 0.5 & df$Q21_Changed_A == 1, "e1c1", ifelse(df$nmpperc_avg <= 1.34 & df$nmpperc_avg >= 0.5 & df$Q21_Changed_A == 2, "e1c2", ifelse(df$nmpperc_avg >= 1.5 & df$Q21_Changed_A == 0, "e2c0", ifelse(df$nmpperc_avg >= 1.5 & df$Q21_Changed_A == 1, "e2c1", ifelse(df$nmpperc_avg >= 1.5 & df$Q21_Changed_A == 2, "e2c2", NA_character_)))))))))
+
+df$learnchange_FEP = ifelse(df$fepperc_avg < .5 & df$Q21_Changed_B == 0, "e0c0", ifelse(df$fepperc_avg < .5 & df$Q21_Changed_B == 1, "e0c1", ifelse(df$fepperc_avg < .5 & df$Q21_Changed_B == 2, "e0c2", ifelse(df$fepperc_avg <= 1.34 & df$fepperc_avg >= 0.5 & df$Q21_Changed_B == 0, "e1c0", ifelse(df$fepperc_avg <= 1.34 & df$fepperc_avg >= 0.5 & df$Q21_Changed_B == 1, "e1c1", ifelse(df$fepperc_avg <= 1.34 & df$fepperc_avg >= 0.5 & df$Q21_Changed_B == 2, "e1c2", ifelse(df$fepperc_avg >= 1.5 & df$Q21_Changed_B == 0, "e2c0", ifelse(df$fepperc_avg >= 1.5 & df$Q21_Changed_B == 1, "e2c1", ifelse(df$fepperc_avg >= 1.5 & df$Q21_Changed_B == 2, "e2c2", NA_character_)))))))))
+
+# Exploring who the changers but not learners are
+df %>% filter(learnchange_NMP == "e0c1") %>% summary()
+df %>% filter(learnchange_NMP == "e1c1") %>% summary()
+df %>% filter(learnchange_NMP == "e2c1") %>% summary()
+
+# Exploring who the changers but not learners are
+df %>% filter(learnchange_FEP == "e0c1") %>% summary()
+df %>% filter(learnchange_FEP == "e1c1") %>% summary()
+df %>% filter(learnchange_FEP == "e2c1") %>% summary()
+
+# THREE Categroies of learning
+## This is creating a combination where there are three levels, where the applied category is "lax" in that we put farmers in this category if they report change, even if they do not report learning. This is assuming that they have learned elsewhere, not reflected in ther survey. In this sense, it is lax because it allows for some assumption of outside learning. 
+
+df$sequence3_lax_NMP <- as.factor(ifelse(df$learnchange_NMP == "e0c0", "None", 
+      ifelse( df$learnchange_NMP == "e1c0" | df$learnchange_NMP == "e2c0", "Conceptual",
+      ifelse(df$learnchange_NMP == "e1c1" | df$learnchange_NMP == "e0c2" | 
+             df$learnchange_NMP == "e0c1" | df$learnchange_NMP == "e1c2" | 
+             df$learnchange_NMP == "e2c2" | df$learnchange_NMP == "e2c1", "Applied", 
+                                    NA_character_))))
+
+df$sequence3_lax_FEP <- as.factor(ifelse(df$learnchange_FEP == "e0c0", "None", 
+      ifelse( df$learnchange_FEP == "e1c0" | df$learnchange_FEP == "e2c0", "Conceptual", 
+      ifelse(df$learnchange_FEP == "e1c1" | df$learnchange_FEP == "e0c2" | 
+             df$learnchange_FEP == "e0c1" | df$learnchange_FEP == "e1c2" | 
+             df$learnchange_FEP == "e2c2" | df$learnchange_FEP == "e2c1", "Applied", 
+                                    NA_character_))))
+
+## This is creating a combination where there are three levels, where the applied category is "strcit" in that we only put farmers in this category if they report change AND learning. This is to strictly say that they cannot advance to the next level if they have not reported learning.
+
+df$sequence3_strict_NMP <- as.factor(ifelse(df$learnchange_NMP == "e0c0", "None", 
+    ifelse(df$learnchange_NMP == "e1c0" | df$learnchange_NMP == "e2c0"|
+           df$learnchange_NMP == "e0c2" | df$learnchange_NMP == "e0c1", "Conceptual",
+    ifelse(df$learnchange_NMP == "e1c1" | df$learnchange_NMP == "e1c2" | 
+           df$learnchange_NMP == "e2c2" | df$learnchange_NMP == "e2c1", "Applied", 
+                                      NA_character_))))
+
+df$sequence3_strict_FEP = as.factor(ifelse(df$learnchange_FEP == "e0c0", "None", 
+     ifelse(df$learnchange_FEP == "e1c0" | df$learnchange_FEP == "e2c0"|
+            df$learnchange_FEP == "e0c2" | df$learnchange_FEP == "e0c1", "Conceptual",
+     ifelse(df$learnchange_FEP == "e1c1" | df$learnchange_FEP == "e1c2" | 
+            df$learnchange_FEP == "e2c2" | df$learnchange_FEP == "e2c1", "Applied", 
+                                       NA_character_))))
+
+# FOUR categories of learning ----
+
+df$sequence4_strict1_NMP <- as.factor(ifelse(df$learnchange_NMP == "e0c0", "static", 
+     ifelse(df$learnchange_NMP == "e0c1" | df$learnchange_NMP == "e0c2" | 
+            df$learnchange_NMP == "e1c0", "cautious", 
+     ifelse(df$learnchange_NMP == "e1c1" | df$learnchange_NMP == "e2c0", "responsive",
+     ifelse(df$learnchange_NMP == "e1c2" | df$learnchange_NMP == "e2c1" | 
+            df$learnchange_NMP == "e2c2", "transformed", NA_character_)))))
+
+
+df$sequence4_strict2_NMP <- as.factor(ifelse(df$learnchange_NMP == "e0c0", "static", 
+     ifelse(df$learnchange_NMP == "e0c1"  | df$learnchange_NMP == "e1c0", "cautious",
+     ifelse(df$learnchange_NMP == "e1c1" | df$learnchange_NMP == "e2c0" | 
+            df$learnchange_NMP == "e0c2", "responsive",
+     ifelse(df$learnchange_NMP == "e1c2" | df$learnchange_NMP == "e2c1" | 
+            df$learnchange_NMP == "e2c2", "transformed", NA_character_)))))
+
+df$sequence4_strict1_FEP <- as.factor(ifelse(df$learnchange_FEP == "e0c0", "static", 
+     ifelse(df$learnchange_FEP == "e0c1" | df$learnchange_FEP == "e0c2" | 
+            df$learnchange_FEP == "e1c0", "cautious", 
+     ifelse(df$learnchange_FEP == "e1c1" | df$learnchange_FEP == "e2c0", "responsive",
+     ifelse(df$learnchange_FEP == "e1c2" | df$learnchange_FEP == "e2c1" | 
+            df$learnchange_FEP == "e2c2", "transformed", NA_character_)))))
+
+
+df$sequence4_strict2_FEP <- as.factor(ifelse(df$learnchange_FEP == "e0c0", "static", 
+    ifelse(df$learnchange_FEP == "e0c1"  | df$learnchange_FEP == "e1c0", "cautious",
+    ifelse(df$learnchange_FEP == "e1c1" | df$learnchange_FEP == "e2c0" | 
+           df$learnchange_NMP == "e0c2", "responsive",
+    ifelse(df$learnchange_FEP == "e1c2" | df$learnchange_FEP == "e2c1" | 
+           df$learnchange_FEP == "e2c2", "transformed", NA_character_)))))
+
+
+df$sequence4_lax1_NMP <- as.factor(ifelse(df$learnchange_NMP == "e0c0", "static", 
+    ifelse(df$learnchange_NMP == "e1c0", "cautious", 
+    ifelse(df$learnchange_NMP == "e2c0" | df$learnchange_NMP == "e0c1" | 
+           df$learnchange_NMP == "e1c1", "responsive", 
+    ifelse(df$learnchange_NMP == "e2c1" | df$learnchange_NMP == "e2c2" | 
+           df$learnchange_NMP == "e0c2" | df$learnchange_NMP == "e1c2", 
+           "transformed", NA_character_)))))
+
+df$sequence4_lax2_NMP = as.factor(ifelse(df$learnchange_NMP == "e0c0", "static", 
+    ifelse(df$learnchange_NMP == "e1c0", "cautious", 
+    ifelse(df$learnchange_NMP == "e2c0", "responsive", 
+    ifelse(df$learnchange_NMP == "e2c1" | df$learnchange_NMP == "e2c2" | 
+           df$learnchange_NMP == "e0c1" | df$learnchange_NMP == "e1c1" |
+           df$learnchange_NMP == "e0c2" | df$learnchange_NMP == "e1c2", 
+           "transformed", NA_character_)))))
+
+df$sequence4_lax1_FEP = as.factor(ifelse(df$learnchange_FEP == "e0c0", "static", 
+   ifelse(df$learnchange_FEP == "e1c0", "cautious", 
+   ifelse(df$learnchange_FEP == "e2c0" | df$learnchange_FEP == "e0c1" | 
+           df$learnchange_FEP == "e1c1", "responsive", 
+   ifelse(df$learnchange_FEP == "e2c1" | df$learnchange_FEP == "e2c2" | 
+           df$learnchange_FEP == "e0c2" | df$learnchange_FEP == "e1c2", 
+          "transformed", NA_character_)))))
+
+df$sequence4_lax2_FEP <- as.factor(ifelse(df$learnchange_FEP == "e0c0", "static", 
+   ifelse(df$learnchange_FEP == "e1c0", "cautious", 
+   ifelse(df$learnchange_FEP == "e2c0", "responsive", 
+   ifelse(df$learnchange_FEP == "e2c1" | df$learnchange_FEP == "e2c2" | 
+           df$learnchange_FEP == "e0c1" | df$learnchange_FEP == "e1c1" |
+           df$learnchange_FEP == "e0c2" | df$learnchange_FEP == "e1c2", 
+          "transformed", NA_character_)))))
+                      
+```
+
+```{r tables of classification, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.height=2, fig.align="center"}
+
+options(xtable.comment = FALSE)
+#Plan = c("e0c0", "e0c1", "e0c2", "e1c0", "e1c1", "e1c2", "e2c0", "e2c1", "e2c2")
+NMP <- table(df$learnchange_NMP)
+FEP <- table(df$learnchange_FEP)
+
+learnsequence <- rbind(NMP, FEP)
+print(xtable(learnsequence, caption = 'Counts of farmers in different combinations of learning'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+```
+
+We then used these nine categorizations to define four different characterizations of learning stages -- three or four stages, and within these, strict or relaxed assumption about learning. The first set of constructions are based on three stages of learning, with sub-constructs of "strict" and "relaxed" definitions within those three stages. The three stages of learning are broken up into no learning, conceptual learning and applied learning. No learning includes farmers who have neither engaged or changed (e.g. e0c0), conceptual learning includes farmers who have engaged (e.g. e1c0), and applied learning includes farmers who have changed (e.g. e2c1). However, as Table 1 shows, there are a small handful of farmers who respond that they have changed, but not engaged (e.g. e0c1 and e0c2, which includes n=15 for NMP and n=14 for FEP), leading us to create both a strict and a relaxed construction of the three-stage learning sequence. In the strict classification, we classify farmers who report changing but no engagement into the conceptual learning stage, based on the strict assumption that to be in the applied learning phase (the most advanced) one must progress through more conceptual learning stages, which these farmers do not yet report. In the relaxed classification, we instead classify farmers who report changing but no engagement into the applied learning stage, assuming that while they do not report conceptual learning based on the questions we asked, they have gone through conceptual learning in other ways and are already at the most advanced stage of applying what they've learned. Counts of farmers in each of these stages are provided in Tables 2-5.
+
+```{r tables of 3-stage, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.height=2, fig.align="center"}
+options(xtable.comment = FALSE)
+NMP3s <- table(df$sequence3_strict_NMP, df$learnchange_NMP)
+print(xtable(NMP3s, caption = 'Counts of farmers in 3-stage Strict (NMP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+NMP3l <- table(df$sequence3_lax_NMP, df$learnchange_NMP)
+print(xtable(NMP3l, caption = 'Counts of farmers in 3-stage Relaxed (NMP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+FEP3s <- table(df$sequence3_strict_FEP, df$learnchange_FEP)
+print(xtable(FEP3s, caption = 'Counts of farmers in 3-stage Strict (FEP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+FEP3l <- table(df$sequence3_lax_FEP, df$learnchange_FEP)
+print(xtable(FEP3l, caption = 'Counts of farmers in 3-stage Relaxed (FEP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+```
+
+\newpage
+The second set of constructions are based on four stages of learning, again with sub-constructs of strict and relaxed definitions within those four stages. The four stages of learning are broken up into static, cautious, responsive, and transformed. Static includes farmers who have neither engaged or changed (e.g. e0c0), cautious includes farmers who have a total of only one "somewhat" response to any of the learning questions (e.g. e1c0), responsive includes farmers who have either one "yes" or two "somewhat" responses to any of the learning questions (e.g. e1c1, e2c0), and transformed includes farmers who have at least one "yes" and one "somewhat" responses to any of the learning questions (e.g. e2c1, e1c2 or e2c2). As with the three-stage construction, the question of classifying the few farmers who respond to having changed without engaging led to the sub-constructs of strict and relaxed. In the strict classification, farmers who report no engagement and somewhat to changing (e0c1) are placed in the cautious category and farmers who report no engagement with yes to changing (e0c2) are placed in the responsive category. In the relaxed classification, farmers who report changing even without engagement are moved up to slightly higher categories, whereby those who report no engagement and somewhat to changing (e0c1) are placed in the responsive category and farmers who report no engagement with yes to changing (e0c2) are placed in the transformed category. Counts of farmers in each of these stages are provided in Tables 6-9.
+
+```{r tables of 4-stage, include = FALSE}
+
+options(xtable.comment = FALSE)
+NMP4s <- table(df$sequence4_strict2_NMP, df$learnchange_NMP)
+print(xtable(NMP4s, caption = 'Counts of farmers in 4-stage Strict (NMP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+NMP4l <- table(df$sequence4_lax2_NMP, df$learnchange_NMP)
+print(xtable(NMP4l, caption = 'Counts of farmers in 4-stage Relaxed (NMP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+FEP4s <- table(df$sequence4_strict2_FEP, df$learnchange_FEP)
+print(xtable(FEP4s, caption = 'Counts of farmers in 4-stage Strict (FEP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+FEP4l <- table(df$sequence4_lax2_FEP, df$learnchange_FEP)
+print(xtable(FEP4l, caption = 'Counts of farmers in 4-stage Relaxed (FEP)'), caption.placement = 'top', include.colnames=T, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+```
+\begin{table}[H]
+\centering
+\caption{Counts of farmers in 4-stage Strict (NMP)} 
+\begingroup\fontsize{9pt}{10pt}\selectfont
+\begin{tabular}{lccccccccc}
+  \hline
+ & e0c0 & e0c1 & e0c2 & e1c0 & e1c1 & e1c2 & e2c0 & e2c1 & e2c2 \\ 
+  \hline
+Static & 246 &   0 &   0 &   0 &   0 &   0 &   0 &   0 &   0 \\ 
+  Cautious &   0 &  14 &   0 & 218 &   0 &   0 &   0 &   0 &   0 \\ 
+  Responsive &   0 &   0 &   1 &   0 & 104 &   0 &  83 &   0 &   0 \\ 
+  Transformed &   0 &   0 &   0 &   0 &   0 &  19 &   0 & 106 &  61 \\ 
+   \hline
+\end{tabular}
+\endgroup
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Counts of farmers in 4-stage Relaxed (NMP)} 
+\begingroup\fontsize{9pt}{10pt}\selectfont
+\begin{tabular}{lccccccccc}
+  \hline
+ & e0c0 & e0c1 & e0c2 & e1c0 & e1c1 & e1c2 & e2c0 & e2c1 & e2c2 \\ 
+  \hline
+Static & 246 &   0 &   0 &   0 &   0 &   0 &   0 &   0 &   0 \\ 
+  Cautious &   0 &   0 &   0 & 218 &   0 &   0 &   0 &   0 &   0 \\ 
+  Responsive &   0 &   0 &   0 &   0 &   0 &   0 &  83 &   0 &   0 \\ 
+  Transformed &   0 &  14 &   1 &   0 & 104 &  19 &   0 & 106 &  61 \\ 
+   \hline
+\end{tabular}
+\endgroup
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Counts of farmers in 4-stage Strict (FEP)} 
+\begingroup\fontsize{9pt}{10pt}\selectfont
+\begin{tabular}{lccccccccc}
+  \hline
+ & e0c0 & e0c1 & e0c2 & e1c0 & e1c1 & e1c2 & e2c0 & e2c1 & e2c2 \\ 
+  \hline
+Static & 271 &   0 &   0 &   0 &   0 &   0 &   0 &   0 &   0 \\ 
+  Cautious &   0 &  12 &   0 & 164 &   0 &   0 &   0 &   0 &   0 \\ 
+  Responsive &   0 &   0 &   1 &   0 & 115 &   0 &  56 &   0 &   0 \\ 
+  Transformed &   0 &   0 &   0 &   0 &   0 &  16 &   0 &  79 &  54 \\ 
+   \hline
+\end{tabular}
+\endgroup
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Counts of farmers in 4-stage Relaxed (FEP)} 
+\begingroup\fontsize{9pt}{10pt}\selectfont
+\begin{tabular}{lccccccccc}
+  \hline
+ & e0c0 & e0c1 & e0c2 & e1c0 & e1c1 & e1c2 & e2c0 & e2c1 & e2c2 \\ 
+  \hline
+Static & 271 &   0 &   0 &   0 &   0 &   0 &   0 &   0 &   0 \\ 
+  Cautious &   0 &   0 &   0 & 164 &   0 &   0 &   0 &   0 &   0 \\ 
+  Responsive &   0 &   0 &   0 &   0 &   0 &   0 &  56 &   0 &   0 \\ 
+  Transformed &   0 &  12 &   2 &   0 & 115 &  17 &   0 &  79 &  57 \\ 
+   \hline
+\end{tabular}
+\endgroup
+\end{table}
+
+### Comparing model fit across constructs      
+
+We compare the four different constructions of learning stages by comparing model fit statistics (log-likelihood, AIC and BIC) in the sequential regression model for both the NMP (Table 10) and FEP (Table 11). The three-stage construction outperform the four-stage construction for both both strict and relaxed classifications. The three-stage constructions have a log-likelihood of 151 and 147 points higher than strict classification in the four-stage construction for the NMP and FEP respectively, and a log-likelihood of 101 and 100 points higher than relaxed classification in the four-stage construction for the NMP and FEP respectively. 
+
+Between the strict and relaxed classifications of the three-stage model, model fit was relatively similar, whereby the strict classification scored 11 points lower for both the AIC and BIC, and had a log-likelihood 5 points greater for the NMP. For the FEP, the relaxed classification outperformed the strict classification by only 1 point in each of these model fit statistics, which is negligible. At any rate, these robustness checks lead us to believe that either the strict or relaxed construction of learning stages into three stages outperforms the four-stage construction, and that the strict classification in the three-stage construction marginally outperforms the relaxed classification. 
+
+```{r polr model for cumulative logit, include = F}
+df$sequence3_strict_NMP <- factor(df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))
+df$sequence3_lax_NMP <- factor(df$sequence3_lax_NMP, c('None', 'Conceptual', 'Applied'))
+df$sequence3_strict_FEP <- factor(df$sequence3_strict_FEP, c('None', 'Conceptual', 'Applied'))
+df$sequence3_lax_FEP <- factor(df$sequence3_lax_FEP, c('None', 'Conceptual', 'Applied'))
+
+df$sequence4_strict1_NMP <- factor(df$sequence4_strict1_NMP, 
+                                   c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_strict2_NMP <- factor(df$sequence4_strict2_NMP, 
+                                   c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_lax1_NMP <- factor(df$sequence4_lax1_NMP, 
+                               c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_lax2_NMP <- factor(df$sequence4_lax2_NMP, 
+                               c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_strict1_FEP <- factor(df$sequence4_strict1_FEP, 
+                                  c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_strict2_FEP <- factor(df$sequence4_strict2_FEP, 
+                                   c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_lax1_FEP <- factor(df$sequence4_lax1_FEP, 
+                               c('static', 'cautious', 'responsive', 'transformed'))
+df$sequence4_lax2_FEP <- factor(df$sequence4_lax2_FEP, 
+                               c('static', 'cautious', 'responsive', 'transformed'))
+
+seq3s_NMP = polr(factor(sequence3_strict_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15  + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq3l_NMP = polr(factor(sequence3_lax_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4s1_NMP = polr(factor(sequence4_strict1_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4s2_NMP = polr(factor(sequence4_strict2_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4l1_NMP = polr(factor(sequence4_lax1_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4l2_NMP = polr(factor(sequence4_lax2_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+
+seq3s_FEP = polr(factor(sequence3_strict_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq3l_FEP = polr(factor(sequence3_lax_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4s1_FEP = polr(factor(sequence4_strict1_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4s2_FEP = polr(factor(sequence4_strict2_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4l1_FEP = polr(factor(sequence4_lax1_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+seq4l2_FEP = polr(factor(sequence4_lax2_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, method = "logistic", Hess = T)
+
+```
+
+```{r polr model for cumulative logit comparison in stargazer, include = F}
+
+# I am excluding s1 and l1 because they were already worst fitting
+stargazer(seq3s_NMP, seq3l_NMP, seq4s2_NMP, seq4l2_NMP,  type = "latex", dep.var.labels = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax"), covariate.labels = c("Farm size (log acres)", "Income", "Education", "Blame ag sources of N", "Values: Agro-economic", "Values: Socio-ecological", "Information sources", "Uses consultant", "Self-certification course", "Coalition perception"), model.numbers = FALSE, nobs = TRUE, dep.var.caption = "", no.space = TRUE, header = FALSE, title = "Comparison of cumulative models for engagement variables (NMP)", table.placement = "!h", keep.stat = c("n", "ll"))
+
+stargazer(seq3s_FEP, seq3l_FEP, seq4s2_FEP, seq4l2_FEP,  type = "latex", dep.var.labels = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax"), covariate.labels = c("Farm size (log acres)", "Income", "Education", "Blame ag sources of N", "Values: Agro-economic", "Values: Socio-ecological", "Information sources", "Uses consultant", "Self-certification course", "Coalition perception"), model.numbers = FALSE, nobs = TRUE, dep.var.caption = "", no.space = TRUE, header = FALSE, title = "Comparison of cumulative models for engagement variables (FEP)", table.placement = "!h", keep.stat = c("n", "ll"))
+```
+
+```{r comparing polr model fit}
+ll1 = logLik(seq3s_NMP) 
+ll2 = logLik(seq3l_NMP)
+ll3 = logLik(seq4s1_NMP)
+ll4 = logLik(seq4s2_NMP)
+ll5 = logLik(seq4l1_NMP)
+ll6 = logLik(seq4l2_NMP)
+
+AIC1 = AIC(seq3s_NMP) 
+AIC2 = AIC(seq3l_NMP)
+AIC3 = AIC(seq4s1_NMP)
+AIC4 = AIC(seq4s2_NMP)
+AIC5 = AIC(seq4l1_NMP)
+AIC6 = AIC(seq4l2_NMP)
+
+BIC1 = BIC(seq3s_NMP) 
+BIC2 = BIC(seq3l_NMP)
+BIC3 = BIC(seq4s1_NMP)
+BIC4 = BIC(seq4s2_NMP)
+BIC5 = BIC(seq4l1_NMP)
+BIC6 = BIC(seq4l2_NMP)
+
+NMP = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax")
+LL = c(round(ll1, 1), round(ll2, 1), round(ll4, 1), round(ll6, 1))
+AIC = c(round(AIC1,0), round(AIC2,0), round(AIC4,0), round(AIC6,0))
+BIC = c(round(BIC1,0), round(BIC2,0), round(BIC4,0), round(BIC6,0))
+
+learnmodelsNMP = rbind(NMP, LL, AIC, BIC)
+options(xtable.comment = FALSE)
+print(xtable(learnmodelsNMP, caption = 'NMP Model comparison for cumulative logit models'), caption.placement = 'top', include.colnames=FALSE, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+ll1 = logLik(seq3s_FEP) 
+ll2 = logLik(seq3l_FEP)
+ll3 = logLik(seq4s1_FEP)
+ll4 = logLik(seq4s2_FEP)
+ll5 = logLik(seq4l1_FEP)
+ll6 = logLik(seq4l2_FEP)
+
+AIC1 = AIC(seq3s_FEP) 
+AIC2 = AIC(seq3l_FEP)
+AIC3 = AIC(seq4s1_FEP)
+AIC4 = AIC(seq4s2_FEP)
+AIC5 = AIC(seq4l1_FEP)
+AIC6 = AIC(seq4l2_FEP)
+
+BIC1 = BIC(seq3s_FEP) 
+BIC2 = BIC(seq3l_FEP)
+BIC3 = BIC(seq4s1_FEP)
+BIC4 = BIC(seq4s2_FEP)
+BIC5 = BIC(seq4l1_FEP)
+BIC6 = BIC(seq4l2_FEP)
+
+FEP = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax")
+LL = c(round(ll1, 1), round(ll2, 1), round(ll4, 1), round(ll6, 1))
+AIC = c(round(AIC1,0), round(AIC2,0), round(AIC4,0), round(AIC6,0))
+BIC = c(round(BIC1,0), round(BIC2,0), round(BIC4,0), round(BIC6,0))
+
+learnmodelsFEP = rbind(FEP, LL, AIC, BIC)
+options(xtable.comment = FALSE)
+print(xtable(learnmodelsFEP, caption = 'FEP Model comparison for cumulative logit models'), caption.placement = 'top', include.colnames=FALSE, size="\\fontsize{8pt}{9pt}\\selectfont")
+```
+
+```{r comparing sequential model fit}
+ll1 = logLik(seq3s_NMP) 
+ll2 = logLik(seq3l_NMP)
+ll3 = logLik(seq4s1_NMP)
+ll4 = logLik(seq4s2_NMP)
+ll5 = logLik(seq4l1_NMP)
+ll6 = logLik(seq4l2_NMP)
+
+AIC1 = AIC(seq3s_NMP) 
+AIC2 = AIC(seq3l_NMP)
+AIC3 = AIC(seq4s1_NMP)
+AIC4 = AIC(seq4s2_NMP)
+AIC5 = AIC(seq4l1_NMP)
+AIC6 = AIC(seq4l2_NMP)
+
+BIC1 = BIC(seq3s_NMP) 
+BIC2 = BIC(seq3l_NMP)
+BIC3 = BIC(seq4s1_NMP)
+BIC4 = BIC(seq4s2_NMP)
+BIC5 = BIC(seq4l1_NMP)
+BIC6 = BIC(seq4l2_NMP)
+
+LL = c(round(ll1, 1), round(ll2, 1), round(ll4, 1), round(ll6, 1))
+AIC = c(round(AIC1,0), round(AIC2,0), round(AIC4,0), round(AIC6,0))
+BIC = c(round(BIC1,0), round(BIC2,0), round(BIC4,0), round(BIC6,0))
+
+LL = c(ll1, ll2, ll4, ll6)
+AIC = c(AIC1, AIC2, AIC4, AIC6)
+BIC = c(BIC1, BIC2, BIC4, BIC6)
+
+learnmodelsNMP = rbind(LL, AIC, BIC)
+colnames(learnmodelsNMP) = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax")
+options(xtable.comment = FALSE)
+print(xtable(learnmodelsNMP, caption = 'NMP Model comparison for sequential logit models'), caption.placement = 'top', include.colnames=TRUE, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+ll1 = logLik(seq3s_FEP) 
+ll2 = logLik(seq3l_FEP)
+ll3 = logLik(seq4s1_FEP)
+ll4 = logLik(seq4s2_FEP)
+ll5 = logLik(seq4l1_FEP)
+ll6 = logLik(seq4l2_FEP)
+
+AIC1 = AIC(seq3s_FEP) 
+AIC2 = AIC(seq3l_FEP)
+AIC3 = AIC(seq4s1_FEP)
+AIC4 = AIC(seq4s2_FEP)
+AIC5 = AIC(seq4l1_FEP)
+AIC6 = AIC(seq4l2_FEP)
+
+BIC1 = BIC(seq3s_FEP) 
+BIC2 = BIC(seq3l_FEP)
+BIC3 = BIC(seq4s1_FEP)
+BIC4 = BIC(seq4s2_FEP)
+BIC5 = BIC(seq4l1_FEP)
+BIC6 = BIC(seq4l2_FEP)
+
+
+LL = c(round(ll1, 1), round(ll2, 1), round(ll4, 1), round(ll6, 1))
+AIC = c(AIC1, AIC2, AIC4, AIC6)
+BIC = c(BIC1, BIC2, BIC4, BIC6)
+
+learnmodelsFEP = rbind(LL, AIC, BIC)
+colnames(learnmodelsFEP) = c("3-stage strict", "3-stage lax", "4-stage strict", "4-stage lax")
+options(xtable.comment = FALSE)
+print(xtable(learnmodelsFEP, caption = 'FEP Model comparison for sequential logit models'), caption.placement = 'top', include.colnames=TRUE, size="\\fontsize{8pt}{9pt}\\selectfont")
+```
+
+
+## Compring the sequential and cumulative approaches to ordered logits  
+
+While cumulative ordered logistic regressions are more common, staged models often call for a sequential approach, changing the conditions of probabilities. While in a cumulative ordered logistic regression the model estimates the likelihood of being at or above a certain category (e.g. P(Y>=2)), a sequential logit evaluates the likelihood of being in a particular level against the likelihood of being in the level just below it (e.g. P[Y>2|Y>=2]). Here we compare model fit statistics between the cumulative and sequential ordered logits, assuming proportional odds, and the sequential ordered logit with the relaxed proportional odds assumption (note: the `VGAM` package in `R` does not permit a non-proportional model to run if the proportional odds assumption is not met. That being the case, we were unable to include fit statistics of the non-proportional cumulative logit, which passes the proportional odds test). Tables 12 and 13 shows fit statistics across the three models for the NMP and FEP. Sequential models outperform the cumulative model in most cases (higher log-likelihood and lower AIC and BIC), and the non-proportional sequential is the top performing, except in BIC fit statistics, which penalize the additional parameters of the model.
+
+```{r comparing cumulative and sequence where parallel is T}
+df = read.csv("data/modeldf_8.16.20_v4.csv")
+
+seq3s_NMP_cuml = vglm(ordered(sequence3_strict_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, family=cumulative(parallel = T))
+summary(seq3s_NMP_cuml)
+
+#seq3s_NMP_cumlnp = vglm(ordered(sequence3_strict_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + consulting2 + Q17_SelfCert_A + wqcperc_avg, data = df, family=cumulative(parallel = F))
+#summary(seq3s_NMP_cumlnp)
+
+seq3s_NMP_seq = vglm(ordered(sequence3_strict_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, family=cratio(parallel = T))
+summary(seq3s_NMP_seq)
+
+seq3s_NMP_seqnp = vglm(ordered(sequence3_strict_NMP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, family=cratio(parallel = F))
+summary(seq3s_NMP_seqnp)
+
+seq3s_FEP_cuml = vglm(ordered(sequence3_strict_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, family=cumulative(parallel = T))
+summary(seq3s_FEP_cuml)
+
+#seq3s_FEP_cumlnp = vglm(ordered(sequence3_strict_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + consulting2 + Q17_SelfCert_A + wqcperc_avg, data = df, family=cumulative(parallel = F))
+
+seq3s_FEP_seq = vglm(ordered(sequence3_strict_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 + Q17_SelfCert_A + wqcperc_avg, data = df, family=cratio(parallel = T))
+summary(seq3s_FEP_seq)
+
+seq3s_FEP_seqnp = vglm(ordered(sequence3_strict_FEP) ~  LogTotalFarm_acres + income + Education2 +  blame_ag + priority_econ + priority_conservation + Info_count_15 +  Q17_SelfCert_A + wqcperc_avg, data = df, family=cratio(parallel = F))
+summary(seq3s_FEP_seqnp)
+
+ll1 <- logLik(seq3s_NMP_cuml) # -666 
+ll2 <- logLik(seq3s_NMP_seq) # -663 better
+#logLik(seq3s_NMP_cumlnp) # This model panics
+ll3 <- logLik(seq3s_NMP_seqnp) # -654 best
+
+AIC1 <- AIC(seq3s_NMP_cuml) # 1353 
+AIC2 <- AIC(seq3s_NMP_seq) # 1349 better
+AIC3 <- AIC(seq3s_NMP_seqnp) # 1348 best
+
+BIC1 <- BIC(seq3s_NMP_cuml) # 1404 
+BIC2 <- BIC(seq3s_NMP_seq) # 1399 better
+BIC3 <- BIC(seq3s_NMP_seqnp) # 1439 penalized for more parameters
+
+LL = c(round(ll1, 1), round(ll2, 1), round(ll3, 1))
+AIC = c(AIC1, AIC2, AIC3)
+BIC = c(BIC1, BIC2, BIC3)
+
+modelcompNMP = rbind(LL, AIC, BIC)
+colnames(modelcompNMP) = c("Cumulative Proportional", "Sequential Proportional", "Sequential Non-proportional")
+options(xtable.comment = FALSE)
+print(xtable(modelcompNMP, caption = 'NMP Model comparison of ordered logit link functions'), caption.placement = 'top', include.colnames=TRUE, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+ll1 <- logLik(seq3s_FEP_cuml) # -617 
+ll2 <- logLik(seq3s_FEP_seq) # -617 
+#logLik(seq3s_FEP_cumlnp) # This model panics
+ll3 <- logLik(seq3s_FEP_seqnp) # -606 best
+
+AIC1 <- AIC(seq3s_FEP_cuml) # 1256 better
+AIC2 <- AIC(seq3s_FEP_seq) # 1257
+AIC3 <- AIC(seq3s_FEP_seqnp) # 1252 best
+
+BIC1 <- BIC(seq3s_FEP_cuml) # 1305 better
+BIC2 <- BIC(seq3s_FEP_seq) # 1306
+BIC3 <- BIC(seq3s_FEP_seqnp) # 1341 penalized for more parameters
+
+LL = c(round(ll1, 1), round(ll2, 1), round(ll3, 1))
+AIC = c(AIC1, AIC2, AIC3)
+BIC = c(BIC1, BIC2, BIC3)
+
+modelcompFEP = rbind(LL, AIC, BIC)
+colnames(modelcompFEP) = c("Cumulative Proportional", "Sequential Proportional", "Sequential Non-proportional")
+options(xtable.comment = FALSE)
+print(xtable(modelcompFEP, caption = 'FEP Model comparison of ordered logit link functions'), caption.placement = 'top', include.colnames=TRUE, size="\\fontsize{8pt}{9pt}\\selectfont")
+
+
+```
+
+
