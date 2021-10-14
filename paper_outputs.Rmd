@@ -1,7 +1,9 @@
 ---
-title: "Information-based policy tools facilitate California farmers’ learning about nitrogen management"
+title: Information-based policy tools facilitate California farmers’ learning about
+  nitrogen management
 header-includes: \usepackage{graphicx} \usepackage{float}
 output:
+  word_document: default
   pdf_document: default
 ---
 
@@ -28,29 +30,98 @@ library(extrafont)
 library(cowplot)
 ```
 
-```{r data}
+```{r data, include = F, results = F}
 components.df <- read.csv("data/cleaned_8.16.20_v4.csv")
-model.df <- read.csv("data/modeldf_8.16.20_v4.csv")
+model.df <- read.csv("data/modeldf_8.16.20_v4.csv") %>% select(-consulting2, -sequence3_lax_NMP, -sequence3_lax_FEP)
+components.df$sequence3_strict_NMP <- factor(components.df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))
+components.df$sequence3_strict_FEP <- factor(components.df$sequence3_strict_FEP, c('None', 'Conceptual', 'Applied'))
 model.df$sequence3_strict_NMP <- factor(model.df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))
 model.df$sequence3_strict_FEP <- factor(model.df$sequence3_strict_FEP, c('None', 'Conceptual', 'Applied'))
 ```
 
-```{r summary}
+```{r summary, include = F, results = F}
 summary(model.df)
+summary(exp(model.df$LogTotalFarm_acres))
 ```
 
-```{r descriptives contd with proptables}
-prop.table(table(df$Q21_Analyze_A))
-prop.table(table(df$Q21_Analyze_B))
-prop.table(table(df$Q21_Identify_A))
-prop.table(table(df$Q21_Identify_B))
-prop.table(table(df$Q21_Improve_A))
-prop.table(table(df$Q21_Improve_B))
-prop.table(table(df$Q21_Changed_A))
-prop.table(table(df$Q21_Changed_B))
+```{r descriptives contd with proptables, include = F, results = F}
+prop.table(table(components.df$Q21_Analyze_A))
+prop.table(table(components.df$Q21_Analyze_B))
+prop.table(table(components.df$Q21_Identify_A))
+prop.table(table(components.df$Q21_Identify_B))
+prop.table(table(components.df$Q21_Improve_A))
+prop.table(table(components.df$Q21_Improve_B))
+prop.table(table(components.df$Q21_Changed_A))
+prop.table(table(components.df$Q21_Changed_B))
 ```
 
-```{r learning stages plots}
+\begin{table}[!h]
+\centering
+\begin{tabular}{lcccc}
+\multicolumn{5}{l}{Table 1a. Independent variable summary statistics}                                                                                      \\ \hline
+                                       & Mean                   & Median               & Min                  & Max                  \\ \cline{2-5}
+*Farm and farmer resources*            &                        &                      &                      &                      \\
+Farm Size (acres)                      & 355                    & 52                   & 1                    & 11,969               \\
+Income                                 & \$100-200K             & \$100-200K           & < \$50K              & > \$1M                \\
+Education                              & Associate degree     & Associate degree   & Primary school    & Graduate degree   \\
+*Awareness, attitudes, and perceptions*&                        &                      &                      &                      \\
+Aware of ag. impact                    & 3.47                   & 3.33                 & 1                    & 5                    \\
+Stewardship attitudes                  & 3.86                   & 4                    & 1                    & 5                    \\
+Farm-as-business attitudes             & 4.2                    & 4.4                  & 1                    & 5                    \\
+Coalition perception                   & 3.48                   & 3.43                 & 1                    & 5                    \\
+*Informational support*                &                        &                      &                      &                      \\
+Information source count               & 3.38                   & 3                    & 0                    & 15                   \\
+Attends self-certification course      & 0.57                   & 1                    & 0                    & 1                    \\
+                                       & \multicolumn{1}{l}{}   & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} \\ 
+\multicolumn{5}{l}{Table 1b. Learning statements: proportions of respondents in each category. The NMP/FEP...}                                                 \\ 
+\hline
+\multicolumn{2}{l}{}                                                                  & No                   & Sometimes            & Yes                  \\ \cline{3-5} 
+\multicolumn{2}{l}{Helps me analyze connections between N use and water movement}     & 0.36/0.40            & 0.32/0.32            & 0.32/0.28            \\
+\multicolumn{2}{l}{Helps me identify areas in my operations for increased efficiency} & 0.36/0.40            & 0.34/0.32            & 0.30/0.28            \\
+\multicolumn{2}{l}{Helps me improve my N management}                                  & 0.31/0.38            & 0.34/0.33            & 0.35/0.29            \\
+\multicolumn{2}{l}{Has made me change my farm management significantly}               & 0.64/0.63            & 0.26/0.27            & 0.10/0.10            \\
+                                                 & \multicolumn{1}{l}{}               & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} \\ 
+\multicolumn{5}{l}{Table 1c. Learning stages: proportions of respondents in each category for NMP/FEP}                                                \\
+\hline
+
+                                                 & \multicolumn{1}{l}{}               & None                 & Conceptual           & Applied              \\ \cline{3-5} 
+\multicolumn{2}{l}{Learning stage}                                                    & 0.29/0.35            & 0.37/0.30            & 0.34/0.35           
+\end{tabular}
+\end{table}
+\pagebreak 
+
+## In Markdown
+
+| Table 1a. Independent variable summary statistics                                          |                  |                  |                |                 |
+|--------------------------------------------------------------------------------------------|:----------------:|:----------------:|:--------------:|:---------------:|
+|                                                                                            |       Mean       |      Median      |       Min      |       Max       |
+| *Farm and farmer resources*                                                                |                  |                  |                |                 |
+| Farm Size (acres)                                                                          |        355       |        52        |        1       |      11,969     |
+| Income                                                                                     |    \$100-200K    |    \$100-200K    |     < \$50K    |      > \$1M     |
+| Education                                                                                  | Associate degree | Associate degree | Primary school | Graduate degree |
+| *Awareness, attitudes, and perceptions*                                                    |                  |                  |                |                 |
+| Aware of ag. impact                                                                        |       3.47       |       3.33       |        1       |        5        |
+| Stewardship attitudes                                                                      |       3.86       |         4        |        1       |        5        |
+| Farm-as-business attitudes                                                                 |        4.2       |        4.4       |        1       |        5        |
+| Coalition perception                                                                       |       3.48       |       3.43       |        1       |        5        |
+| *Informational support*                                                                    |                  |                  |                |                 |
+| Information source count                                                                   |       3.38       |         3        |        0       |        15       |
+| Attends self-certification course                                                          |       0.57       |         1        |        0       |        1        |
+|                                                                                            |                  |                  |                |                 |
+| Table 1b. Learning statements: proportions of respondents in each category. The NMP/FEP... |                  |                  |                |                 |
+|                                                                                            |                  |        No        |    Sometimes   |       Yes       |
+| Helps me analyze connections between N use and water movement                              |                  |     0.36/0.40    |    0.32/0.32   |    0.32/0.28    |
+| Helps me identify areas in my operations for increased efficiency                          |                  |     0.36/0.40    |    0.34/0.32   |    0.30/0.28    |
+| Helps me improve my N management                                                           |                  |     0.31/0.38    |    0.34/0.33   |    0.35/0.29    |
+| Has made me change my farm management significantly                                        |                  |     0.64/0.63    |    0.26/0.27   |    0.10/0.10    |
+|                                                                                            |                  |                  |                |                 |
+| Table 1c. Learning stages: proportions of respondents in each category for NMP/FEP         |                  |                  |                |                 |
+|                                                                                            |                  |       None       |   Conceptual   |     Applied     |
+| Learning stage                                                                             |                  |     0.29/0.35    |    0.37/0.30   |    0.34/0.35    |
+
+
+```{r learning stages plots, include = F, results = F}
+
 #NMP
 dfplan <- components.df %>%
   pivot_longer(
@@ -59,18 +130,20 @@ dfplan <- components.df %>%
     values_to = "plan_score",
     values_drop_na = TRUE)
 
+levels(dfplan$sequence3_strict_NMP) <- c('No\nlearning', 'Conceptual\nlearning', 'Applied\nlearning')
+
 dfplan <- dfplan %>% 
   dplyr::select(plan_sentiment, plan_score, sequence3_strict_NMP)
 
-dfplan$plan_sentiment_recode <- recode_factor(dfplan$plan_sentiment, 
-                                              "NMP_analyze"="Analyze",
-                                              "NMP_identify"="Identify",
-                                              "NMP_improve"="Improve", 
-                                              "NMP_changed"="Change")
+dfplan$plan_sentiment_recode <-
+  recode_factor(dfplan$plan_sentiment,
+                "NMP_analyze"="Analyze", "NMP_identify"="Identify",
+                 "NMP_improve"="Improve", "NMP_changed"="Change")
 
 dfplan <- na.omit(dfplan)
 
-p1 <- ggplot(dfplan, aes(x = plan_sentiment_recode, fill = plan_score)) +
+p1 <- dfplan %>% 
+  ggplot(aes(x = plan_sentiment_recode, fill = plan_score)) +
   geom_bar(stat="count") + facet_wrap(~ sequence3_strict_NMP) +
   scale_fill_manual(values=c("#D9D9D9", "#969696", "#525252")) + 
   labs(x = "Learning statements", y = "Number of farmers", 
@@ -91,22 +164,24 @@ dfplan <- components.df %>%
     values_to = "plan_score",
     values_drop_na = TRUE)
 
-dfplan = dfplan %>% 
+levels(dfplan$sequence3_strict_FEP) <- c('No\nlearning', 'Conceptual\nlearning', 'Applied\nlearning')
+
+dfplan <- dfplan %>% 
   dplyr::select(plan_sentiment, plan_score, sequence3_strict_FEP)
 
-dfplan$plan_sentiment_recode = recode_factor(dfplan$plan_sentiment, 
-                                             "FEP_analyze"="Analyze",
-                                             "FEP_identify"="Identify",
-                                             "FEP_improve"="Improve", 
-                                             "FEP_changed"="Change")
+dfplan$plan_sentiment_recode <- 
+  recode_factor(dfplan$plan_sentiment, 
+                "FEP_analyze"="Analyze", "FEP_identify"="Identify",
+                "FEP_improve"="Improve", "FEP_changed"="Change")
 
-dfplan = na.omit(dfplan)
+dfplan <- na.omit(dfplan)
 
-p2 <- ggplot(dfplan, aes(x = plan_sentiment_recode, fill = plan_score)) +
+p2 <- dfplan %>% 
+  ggplot(aes(x = plan_sentiment_recode, fill = plan_score)) +
   geom_bar(stat="count") + facet_wrap(~ sequence3_strict_FEP) +  
   scale_fill_manual(values=c("#D9D9D9", "#969696", "#525252")) + 
   labs(x = "Learning statements", y = "Number of farmers", 
-       fill = "", title = "Farm Evaluation Plan") + 
+       fill = "Learning statement\nresponse", title = "Farm Evaluation Plan") + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -120,10 +195,9 @@ ggdraw() + draw_plot(p1, x = 0, y = 0, width = .4425, height = 1) +
            draw_plot(p2, x=.4425, y=0, width=0.5575, height = 1)
 ```
 
-```{r full df models strict NMP}
+```{r full df models strict NMP, include = F, results = F}
 strict.NMP <- model.df %>% 
-  dplyr::select(-sequence3_lax_FEP, -sequence3_lax_NMP, 
-                -sequence3_strict_FEP, -consulting2)
+  dplyr::select(-sequence3_strict_FEP)
 
 modeldf.naomit = na.omit(strict.NMP)
 
@@ -147,10 +221,9 @@ degf <- NMP.model@df.residual - NMP.model.np@df.residual
 p.value <- 1 - pchisq(q= tran.LR , df = degf); p.value
 ```
 
-```{r full df models strict FEP}
+```{r full df models strict FEP, include = F, results = F}
 strict.FEP <- model.df %>% 
-  dplyr::select(-sequence3_lax_NMP, -sequence3_lax_FEP, 
-                -sequence3_strict_NMP, -consulting2)
+  dplyr::select(-sequence3_strict_NMP)
 
 modeldf.naomit <- na.omit(strict.FEP)
 
@@ -171,12 +244,12 @@ degf <- FEP.model@df.residual - FEP.model.np@df.residual
 p.value <- 1 - pchisq(q= tran.LR , df = degf); p.value
 ```
 
-```{r}
+```{r, include = F, results = F}
 summary(NMP.model.np)
 summary(FEP.model.np)
 ```
 
-```{r coeff table strict non-prop to put into latex NMP and FEP}
+```{r coeff table strict non-prop to put into latex NMP and FEP, include = F}
 s1 <- summary(NMP.model.np)
 nmpodds <- data.frame(exp(s1@coef3))
 nmpci <- data.frame(exp(confint(NMP.model.np)))
@@ -213,11 +286,60 @@ colnames(odds) <- c("Variable", "NMP Conceptual Est.", "NMP Conceptual CI", " NM
 odds
 ```
 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\multicolumn{9}{l}{Table 2. Sequential logit exponentiated coefficients and confidence intervals for learning stages of NMP and FEP}                                                                                                                     \\ \hline
+                      & \multicolumn{4}{c}{Nitrogen Management Plan (NMP)}                                                                            & \multicolumn{4}{c}{Farm Evaluation Plan (FEP)}                                                                       \\ \cline{2-9} 
+                      & \multicolumn{2}{c}{Conceptual}                         & \multicolumn{2}{c}{Applied}                                    & \multicolumn{2}{c}{Conceptual}                        & \multicolumn{2}{c}{Applied}                            \\
+                      & \multicolumn{1}{c}{Odds} & \multicolumn{1}{c}{95\% CI} & \multicolumn{1}{c}{Odds} & \multicolumn{1}{c|}{95\% CI}        & \multicolumn{1}{c}{Odds} & \multicolumn{1}{c}{95\% CI} & \multicolumn{1}{c}{Odds} & \multicolumn{1}{c}{95\% CI} \\ \cline{2-9} 
+(Intercept)           & 0.005$^{***}$            & (0.001, 0.021)              & 0.473                    & \multicolumn{1}{l|}{(0.095, 2.371)} & 0.009$^{***}$            & (0.002, 0.039)              & 1.065                    & (0.173, 6.555)              \\
+Farm size (log acres) & 0.952                    & (0.817, 1.11)               & 0.966                    & \multicolumn{1}{l|}{(0.837, 1.116)} & 0.985                    & (0.848, 1.144)              & 0.988                    & (0.84, 1.161)               \\
+Income                & 0.882                    & (0.751, 1.035)              & 0.922                    & \multicolumn{1}{l|}{(0.795, 1.07)}  & 0.857$^{  .}$            & (0.733, 1.002)              & 0.975                    & (0.826, 1.151)              \\
+Education             & 0.927                    & (0.81, 1.059)               & 0.854$^{*}$              & \multicolumn{1}{l|}{(0.749, 0.974)} & 0.899                    & (0.782, 1.032)              & 0.832$^{*}$              & (0.714, 0.968)              \\
+Aware of ag. impact   & 1.51$^{***}$             & (1.225, 1.862)              & 1.347$^{**}$             & \multicolumn{1}{l|}{(1.102, 1.647)} & 1.491$^{***}$            & (1.207, 1.843)              & 1.377$^{**}$             & (1.093, 1.735)              \\
+Stewardship attitude & 1.475$^{***}$            & (1.198, 1.817)              & 1.107                    & \multicolumn{1}{l|}{(0.874, 1.402)} & 1.43$^{**}$              & (1.155, 1.77)               & 1.052                    & (0.803, 1.378)              \\
+Farm-as-business attitude  & 1.24                     & (0.951, 1.615)              & 0.722$^{*}$              & \multicolumn{1}{l|}{(0.538, 0.969)} & 1.198                    & (0.91, 1.579)               & 0.636$^{*}$              & (0.45, 0.899)               \\
+Coalition perception  & 2.491$^{***}$            & (1.868, 3.322)              & 1.353$^{*}$              & \multicolumn{1}{l|}{(1.011, 1.81)}  & 2.205$^{***}$            & (1.659, 2.931)              & 1.245                    & (0.902, 1.72)                \\
+Info. source count    & 1.075$^{  .}$            & (0.989, 1.168)              & 1.145$^{***}$            & \multicolumn{1}{l|}{(1.066, 1.23)}  & 1.085$^{*}$              & (1, 1.177)                  & 1.205$^{***}$            & (1.108, 1.312)              \\
+Self-certification    & 1.788$^{**}$             & (1.192, 2.682)              & 1.207                    & \multicolumn{1}{l|}{(0.809, 1.802)} & 1.275                    & (0.849, 1.914)              & 1.154                    & (0.738, 1.804)   \\ \hline
+\multicolumn{9}{l}{$^{*}$ p \textless 0.05,  $^{**}$ p \textless 0.01,  $^{***}$ p \textless 0.001}                                                                                    
+\end{tabular}
+}
+\pagebreak 
+
+## Markdown
+
+| Table 2. Sequential logit exponentiated coefficients and confidence intervals for learning stages of NMP and FEP |
+|------------------------------------------------------------------------------------------------------------------|:------------------------------:|:--------------:|:-------------:|:--------------:|:--------------------------:|:--------------:|:-------------:|:--------------:|
+|                                                                                                                  | Nitrogen Management Plan (NMP) |                |               |                | Farm Evaluation Plan (FEP) |                |               |                |
+|                                                                                                                  |           Conceptual           |                |    Applied    |                |         Conceptual         |                |    Applied    |                |
+|                                                                                                                  |              Odds              |     95\% CI    |      Odds     |     95\% CI    |            Odds            |     95\% CI    |      Odds     |     95\% CI    |
+| (Intercept)                                                                                                      |          0.005$^{***}$         | (0.001, 0.021) |     0.473     | (0.095, 2.371) |        0.009$^{***}$       | (0.002, 0.039) |     1.065     | (0.173, 6.555) |
+| Farm size (log acres)                                                                                            |              0.952             |  (0.817, 1.11) |     0.966     | (0.837, 1.116) |            0.985           | (0.848, 1.144) |     0.988     |  (0.84, 1.161) |
+| Income                                                                                                           |              0.882             | (0.751, 1.035) |     0.922     | (0.795, 1.07)  |        0.857$^{  .}$       | (0.733, 1.002) |     0.975     | (0.826, 1.151) |
+| Education                                                                                                        |              0.927             |  (0.81, 1.059) |  0.854$^{*}$  | (0.749, 0.974) |            0.899           | (0.782, 1.032) |  0.832$^{*}$  | (0.714, 0.968) |
+| Aware of ag. impact                                                                                              |          1.51$^{***}$          | (1.225, 1.862) |  1.347$^{**}$ | (1.102, 1.647) |        1.491$^{***}$       | (1.207, 1.843) |  1.377$^{**}$ | (1.093, 1.735) |
+| Stewardship attitude                                                                                             |          1.475$^{***}$         | (1.198, 1.817) |     1.107     | (0.874, 1.402) |         1.43$^{**}$        |  (1.155, 1.77) |     1.052     | (0.803, 1.378) |
+| Farm-as-business attitude                                                                                        |              1.24              | (0.951, 1.615) |  0.722$^{*}$  | (0.538, 0.969) |            1.198           |  (0.91, 1.579) |  0.636$^{*}$  |  (0.45, 0.899) |
+| Coalition perception                                                                                             |          2.491$^{***}$         | (1.868, 3.322) |  1.353$^{*}$  | (1.011, 1.81)  |        2.205$^{***}$       | (1.659, 2.931) |     1.245     |  (0.902, 1.72) |
+| Info. source count                                                                                               |          1.075$^{  .}$         | (0.989, 1.168) | 1.145$^{***}$ | (1.066, 1.23)  |         1.085$^{*}$        |   (1, 1.177)   | 1.205$^{***}$ | (1.108, 1.312) |
+| Self-certification                                                                                               |          1.788$^{**}$          | (1.192, 2.682) |     1.207     | (0.809, 1.802) |            1.275           | (0.849, 1.914) |     1.154     | (0.738, 1.804) |
+| $^{*}$ p < 0.05,  $^{**}$ p < 0.01,  $^{***}$ p < 0.001                                                          |                                |                |               |                |                            |                |               |                |
+
 ```{r NMP pp edu p1, include = FALSE}
 
 modeldf.naomit <- na.omit(strict.NMP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = c(1:7), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg, na.rm = T)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = c(1:7), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = median(priority_econ, na.rm = T),
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg, na.rm = T)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -244,20 +366,25 @@ meltdf <- ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 
 
 meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 pd <- position_dodge(.1)
 
-p1 <- ggplot(meltdf.clean, aes(x=Education2, y=Probability, 
-                                ymin=LLvalue, ymax=ULvalue)) + 
+p1 <- meltdf.clean %>% 
+  ggplot(aes(x=Education2, y=Probability,
+             ymin=LLvalue, ymax=ULvalue)) + 
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Education level", y = "Predicted probabilities", 
-       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+       title = "Nitrogen Management Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -273,7 +400,16 @@ pp_quartiles
 
 modeldf.naomit <- na.omit(strict.FEP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = c(1:7), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg, na.rm = T)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = c(1:7), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = median(priority_econ, na.rm = T),
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg, na.rm = T)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -300,20 +436,25 @@ meltdf <- ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 
 
 meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 pd <- position_dodge(.1)
 
-p2 <- ggplot(meltdf.clean, aes(x=Education2, y=Probability, 
-                                ymin=LLvalue, ymax=ULvalue)) + 
+p2 <- meltdf.clean %>% 
+  ggplot(aes(x=Education2, y=Probability, 
+             ymin=LLvalue, ymax=ULvalue)) + 
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Education level", y = "Predicted probabilities", 
-       title = "Farm Evaluation Plan") + scale_fill_brewer() + 
+       title = "Farm Evaluation Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -326,14 +467,23 @@ pp_quartiles
 ```
 
 ```{r predicted probs 1, results = "asis", echo = FALSE, message = FALSE, warning = FALSE, fig.width = 8, fig.height = 2.5, fig.align="center"}
-plot_grid(p1, p2, ncol=2, nrow = 1, label_size = 10, label_fontfamily = "Times") 
+plot_grid(p1, p2, ncol=2, nrow = 1, label_size = 10, label_fontfamily = "Times")
 ```
 
 ```{r NMP pp farm as business attitudes p2, include = FALSE}
 
 modeldf.naomit <- na.omit(strict.NMP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = c(1:5), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = median(Education2), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = c(1:5), 
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -360,20 +510,25 @@ meltdf <- ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 
 
 meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 pd <- position_dodge(.1)
 
-p2 <- ggplot(meltdf.clean, aes(x=priority_econ, y=Probability, 
-                               ymin=LLvalue, ymax=ULvalue)) +
+p2 <- meltdf.clean %>% 
+  ggplot(aes(x=priority_econ, y=Probability, 
+             ymin=LLvalue, ymax=ULvalue)) +
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Farm-as-business attitude", y = "Predicted probabilities", 
-       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+       title = "Nitrogen Management Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -390,7 +545,16 @@ pp_quartiles
 
 modeldf.naomit <- na.omit(strict.NMP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ), priority_conservation = c(1:5), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres),
+                         income = median(income), 
+                         Education2 = median(Education2), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = median(priority_econ),
+                         priority_conservation = c(1:5), 
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -417,20 +581,25 @@ meltdf <- ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 
 
 meltdf.clean$Level <- ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 pd = position_dodge(.1)
 
-p3 <- ggplot(meltdf.clean, aes(x=priority_conservation, 
-                               y=Probability, ymin=LLvalue, ymax=ULvalue)) + 
+p3 <- meltdf.clean %>% 
+  ggplot(aes(x=priority_conservation, y=Probability, 
+             ymin=LLvalue, ymax=ULvalue)) + 
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Stewardship attitude", y = "Predicted probabilities", 
-       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+       title = "Nitrogen Management Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -447,7 +616,16 @@ pp_quartiles
 
 modeldf.naomit <- na.omit(strict.NMP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = c(1:5)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = median(Education2), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = median(priority_econ, na.rm = T),
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = c(1:5)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -474,19 +652,24 @@ meltdf = ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 
 meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 pd <- position_dodge(.1)
 
-p4 <- ggplot(meltdf.clean, aes(x=wqcperc_avg, y=Probability, 
-                               ymin=LLvalue, ymax=ULvalue)) + 
+p4 <- meltdf.clean %>% 
+  ggplot(aes(x=wqcperc_avg, y=Probability, 
+             ymin=LLvalue, ymax=ULvalue)) + 
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Coalition perception", y = "Predicted probabilities", 
-       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+       title = "Nitrogen Management Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -503,7 +686,16 @@ pp_quartiles
 
 modeldf.naomit <- na.omit(strict.NMP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = median(priority_econ, na.rm = T), priority_conservation = median(priority_conservation), Info_count_15 = c(0:15), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = median(Education2), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = median(priority_econ, na.rm = T),
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = c(0:15), 
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(NMP.model.np, newdata = pp_df, type = "link", se=TRUE))
@@ -530,18 +722,23 @@ meltdf <- ppdf_predCIs %>%
   gather(key = "LLCI", value = "LLvalue", 
          LL1, LL2, -Level, -Probability, -ULCI, -ULvalue) 
 
-meltdf1 <- meltdf %>% filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
-meltdf2 <- meltdf %>% filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
+meltdf1 <- meltdf %>% 
+  filter(Level == "Conceptual" & ULCI == "UL1" & LLCI == "LL1")
+meltdf2 <- meltdf %>% 
+  filter(Level == "Applied" & ULCI == "UL2" & LLCI == "LL2")
 meltdf.clean = rbind(meltdf1, meltdf2)
 meltdf.clean$Level = ordered(meltdf.clean$Level, levels=c("Conceptual","Applied"))
 
 pd <- position_dodge(.1)
-p5 <- ggplot(meltdf.clean, aes(x=Info_count_15, y=Probability, 
-                               ymin=LLvalue, ymax=ULvalue)) + 
+p5 <- meltdf.clean %>% 
+  ggplot(aes(x=Info_count_15, y=Probability,
+               ymin=LLvalue, ymax=ULvalue)) + 
   geom_ribbon(alpha=0.2) +
-  geom_line(size=0.2) + facet_wrap(~Level) +
+  geom_line(size=0.2) + 
+  facet_wrap(~Level) +
   labs(x = "Information sources", y = "Predicted probabilities", 
-       title = "Nitrogen Management Plan") + scale_fill_brewer() + 
+       title = "Nitrogen Management Plan") + 
+  scale_fill_brewer() + 
   theme_classic() + 
   theme(text= element_text(size=12, family="Times"), 
         plot.title = element_text(hjust = .5, vjust = 0, size = 12), 
@@ -558,7 +755,16 @@ pp_quartiles
 
 modeldf.naomit <- na.omit(strict.FEP)
 
-pp_df <- with(modeldf.naomit, data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), income = median(income), Education2 = median(Education2), blame_ag = median(blame_ag), priority_econ = c(1:5), priority_conservation = median(priority_conservation), Info_count_15 = median(Info_count_15, na.rm = T), consulting2 = 0, Q17_SelfCert_A = 1, wqcperc_avg = median(wqcperc_avg)))
+pp_df <- with(modeldf.naomit, 
+              data.frame(LogTotalFarm_acres = median(LogTotalFarm_acres), 
+                         income = median(income), 
+                         Education2 = median(Education2), 
+                         blame_ag = median(blame_ag), 
+                         priority_econ = c(1:5), 
+                         priority_conservation = median(priority_conservation),
+                         Info_count_15 = median(Info_count_15, na.rm = T),
+                         Q17_SelfCert_A = 1, 
+                         wqcperc_avg = median(wqcperc_avg)))
 
 # Using predict function to get predicted probabilities, with standard errors
 pp_pred <- cbind(pp_df, predict(FEP.model.np, newdata = pp_df, type = "link", se=TRUE))
