@@ -8,7 +8,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_knit$set(root.dir = "~/Documents/Davis/R-Projects/ILRP")
+knitr::opts_knit$set(root.dir = "~/Box/irrigated_lands/")
 library(ltm)
 library(psych)
 library(nnet)
@@ -31,8 +31,8 @@ library(cowplot)
 ```
 
 ```{r data, include = F, results = F}
-components.df <- read.csv("data/cleaned_8.16.20_v4.csv")
-model.df <- read.csv("data/modeldf_8.16.20_v4.csv") %>% select(-consulting2, -sequence3_lax_NMP, -sequence3_lax_FEP)
+components.df <- read.csv("cleaned_8.16.20_v4.csv")
+model.df <- read.csv("modeldf_8.16.20_v4.csv") %>% select(-consulting2, -sequence3_lax_NMP, -sequence3_lax_FEP)
 components.df$sequence3_strict_NMP <- factor(components.df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))
 components.df$sequence3_strict_FEP <- factor(components.df$sequence3_strict_FEP, c('None', 'Conceptual', 'Applied'))
 model.df$sequence3_strict_NMP <- factor(model.df$sequence3_strict_NMP, c('None', 'Conceptual', 'Applied'))

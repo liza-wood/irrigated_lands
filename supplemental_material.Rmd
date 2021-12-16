@@ -7,7 +7,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_knit$set(root.dir = "~/Desktop/ILRP")
+knitr::opts_knit$set(root.dir = "~/Box/irrigated_lands/")
 library(ltm)
 library(psych)
 library(ggstance)
@@ -42,7 +42,7 @@ library(GGally)
 ```
 
 ```{r data, include = FALSE}
-df <- read.csv("data/cleaned_8.16.20_v4.csv")
+df <- read.csv("cleaned_8.16.20_v4.csv")
 ```
 
 ## Individual learning responses analyzed using an ordered logistic regression  
